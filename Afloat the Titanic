@@ -1,0 +1,82 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn import metrics
+
+#Imported the data, then dropped irrelavent columns. Dropped NAs
+df = pd.read_csv('D:\\OneDrive\\Desktop\\Work\\python\\Titanic File\\train.csv')
+df.info()
+cols = ['Name', 'Ticket', 'Cabin']
+df = df.drop(cols, axis = 1)
+df = df.dropna()
+df.info()
+
+#To make-up for the missing NAs, new columns are created 
+#Dummy numbers are created for the new columns,
+# 'Age' is interpolated, algorithmically created from neighboring columns
+dummies = []
+cols = ['Pclass', 'Sex', 'Embarked']
+for col in cols:
+    dummies.append(pd.get_dummies(df[col]))
+
+titanic_dumies = pd.concat(dummies, axis = 1)
+
+df = pd.concat((df,titanic_dumies), axis=1)
+
+df = df.drop(['Pclass', 'Sex', 'Embarked'], axis=1)
+
+df['Age'] = df['Age'].interpolate()
+
+
+#Converting dataframe from Pandas to NumPY,
+#This allows scikit-learn to run the Machinelearning
+# X is the IVs, y is the DV 'Survived'
+X = df.values
+y = df['Survived'].values
+
+X = np.delete(X, 1, axis= 1)
+
+
+#Test size is using 30 percent of the data for testing
+#70 percent of the data is trained from the dataset
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+#Creates the linear regression model on the trained data
+lr_model = LinearRegression()
+lr_model.fit(X_train,y_train)
+
+#Predicted results
+y_pred = lr_model.predict(X_test)
+
+df = pd.DataFrame({'Actual': y_test, 'predicted': y_pred})
+#Predicted results for person "10"
+print(df.head(10))
+
+#Mean Absolute Error measures the 'average' absolute difference between predicted values and actual values.
+print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
+#Mean Squared Error is the measure of the squared difference between predicted and actual value,
+print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
+
+#The difference between Mean Absolute Error/Mean Squared Error is how they treat errors:
+#MAE disregards direction/size of errors
+#MSE penalizes larger errors, tolerates some outliers
+
+#Root Mean Squared Error is a metric of the performance of the Linear Regression model.
+#RMSE in this case, measures the average magnitude of errors between predicted/actual values.
+#RMSE in this case will provide the overall accuracy of the model's prediction, not the percent survival rate.
+print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+#With RMSE in this case, 0.4 means, that on average, 
+# the model's prediction are off by 0.4 units 
+# in terms of predicting survival probabilities
+
+#Bar graph of the actual/predicted survival rate of the first 50 passengers
+df1 = df.head(50)
+df1.plot(kind= 'bar', figsize=(16,10))
+plt.grid(which='major', linestyle='-', linewidth='0.5', color='green')
+plt.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
+plt.show()
